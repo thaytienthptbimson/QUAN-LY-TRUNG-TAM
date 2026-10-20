@@ -540,7 +540,7 @@ body.rcpt-mode .main,body.rcpt-mode .print-sign,body.rcpt-mode .print-copy{displ
 .grid.compact th,.grid.compact td{padding:8px 6px}
 </style>
 </head>
-<body>
+<body class="locked">
 <div class="app" id="app">
   <aside class="side" id="side"></aside>
   <div class="main-col">
@@ -557,11 +557,12 @@ body.rcpt-mode .main,body.rcpt-mode .print-sign,body.rcpt-mode .print-copy{displ
 <div class="lock-scr" id="lock" role="dialog" aria-modal="true" aria-labelledby="lockT">
   <div class="lock-card">
     <div class="logo"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" style="width:32px;height:32px"><path d="M5 3h12a2 2 0 012 2v16H7a2 2 0 01-2-2V3zM5 19a2 2 0 012-2h12M9 7h6M9 11h6"/></svg></div>
-    <h1 id="lockT">Đã hết thời gian dùng thử</h1>
-    <p>Bản dùng thử 30 ngày đã kết thúc. Hãy nhập mật khẩu để tiếp tục sử dụng. Dữ liệu của bạn vẫn được giữ nguyên.</p>
+    <h1 id="lockT">Đăng nhập hệ thống</h1>
+    <p>Hãy nhập mật khẩu để đăng nhập và sử dụng phần mềm Quản lý trung tâm dạy thêm. Dữ liệu của bạn được lưu giữ an toàn trên thiết bị.</p>
     <form id="lockForm" autocomplete="off">
-      <label class="f" style="text-align:left">Mật khẩu<input class="inp" id="lockPw" type="password" autocomplete="off" placeholder="Nhập mật khẩu"></label>
+      <label class="f" style="text-align:left">Mật khẩu đăng nhập<input class="inp" id="lockPw" type="password" autocomplete="off" placeholder="Nhập mật khẩu đăng nhập"></label>
       <label class="chk"><input type="checkbox" id="lockShow">Hiện mật khẩu</label>
+      <label class="chk"><input type="checkbox" id="lockRem">Ghi nhớ đăng nhập trên thiết bị này</label>
       <button class="btn pri" type="submit" style="width:100%">Mở khóa</button>
     </form>
     <p id="lockMsg" class="lock-msg" role="alert" hidden></p>
@@ -909,7 +910,8 @@ const ICONS = {
   clock: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
   copy: '<rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 00-2-2H6a2 2 0 00-2 2v8a2 2 0 002 2h2"/>',
   back: '<path d="M15 5l-7 7 7 7"/>',
-  next: '<path d="M9 5l7 7-7 7"/>'
+  next: '<path d="M9 5l7 7-7 7"/>',
+  lock: '<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 018 0v4"/>'
 };
 const ic = (n, s) => `<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"${s ? ` style="width:${s}px;height:${s}px"` : ''}>${ICONS[n] || ''}</svg>`;
 
@@ -1017,13 +1019,15 @@ function renderChrome() {
     <div class="side-foot">
       <button class="btn" data-act="export">${ic('down')}Xuất file Excel</button>
       <button class="btn" data-act="theme">${ic(st.theme === 'dark' ? 'moon' : 'sun')}Giao diện: ${({ auto: 'Tự động', light: 'Sáng', dark: 'Tối' })[st.theme]}</button>
+      <button class="btn" data-act="logout">${ic('lock')}Khóa / Đăng xuất</button>
       <div class="copy">${esc(COPYRIGHT)}</div>
     </div>`;
   $('#topbar').innerHTML = `<div class="ttl">${VIEW_TITLE[v] || ''}</div>
     <div class="meta">${st.ten ? `<span class="pill">${esc(st.ten)}</span>` : ''}${st.gv ? `<span class="pill">${esc(st.gv)}</span>` : ''}${licPillHTML()}</div>
     <span class="saved" id="savedTag">Đã lưu</span>
     <button class="icon-btn" data-act="export" aria-label="Xuất Excel" title="Xuất Excel">${ic('down')}</button>
-    <button class="icon-btn" data-act="theme" aria-label="Đổi giao diện sáng/tối" title="Đổi giao diện">${ic(st.theme === 'dark' ? 'moon' : 'sun')}</button>`;
+    <button class="icon-btn" data-act="theme" aria-label="Đổi giao diện sáng/tối" title="Đổi giao diện">${ic(st.theme === 'dark' ? 'moon' : 'sun')}</button>
+    <button class="icon-btn" data-act="logout" aria-label="Khóa / Đăng xuất" title="Khóa / Đăng xuất">${ic('lock')}</button>`;
   const main = ['dash', 'attend', 'students', 'fees'], inMain = main.includes(nv);
   const items = NAV.filter(n => main.includes(n.id)).map(n => `<button class="${nv === n.id ? 'on' : ''}" data-act="nav" data-view="${n.id}" ${nv === n.id ? 'aria-current="page"' : ''}><span class="ico">${ic(n.icon)}</span>${n.label}</button>`);
   items.push(`<button class="${inMain ? '' : 'on'}" data-act="more"><span class="ico">${ic('more')}</span>Thêm</button>`);
@@ -1889,7 +1893,7 @@ ACT.demo = () => confirmBox('Nạp dữ liệu mẫu?', S.students.length || S.c
 
 /* ---- Menu "Thêm" trên điện thoại ---- */
 ACT.more = () => modal({ title: 'Thêm', body: `<div class="menu-list">${NAV.filter(n => !['dash', 'attend', 'students', 'fees'].includes(n.id)).map(n => `<button class="btn" data-act="nav" data-view="${n.id}" data-close="1">${ic(n.icon)}${n.label}</button>`).join('')}
-  <button class="btn" data-act="export">${ic('down')}Xuất file Excel</button><button class="btn" data-act="backup" data-close="1">${ic('file')}Sao lưu dữ liệu (JSON)</button><button class="btn" data-act="theme" data-close="1">${ic('sun')}Đổi giao diện sáng/tối</button></div>` });
+  <button class="btn" data-act="export">${ic('down')}Xuất file Excel</button><button class="btn" data-act="backup" data-close="1">${ic('file')}Sao lưu dữ liệu (JSON)</button><button class="btn" data-act="theme" data-close="1">${ic('sun')}Đổi giao diện sáng/tối</button><button class="btn" data-act="logout" data-close="1">${ic('lock')}Khóa / Đăng xuất</button></div>` });
 
 /* ==========================  KHỞI TẠO  ========================== */
 function init() {
@@ -1927,8 +1931,10 @@ document.addEventListener('DOMContentLoaded', init);
 const COPYRIGHT = 'Bản quyền thuộc về Thầy Tiến - GV Trường THPT Bỉm Sơn- Thanh Hóa';
 const CONTACT_HTML = 'Liên hệ Thầy Tiến - ĐT: <a href="tel:0943930787">0943930787</a> để lấy mã sử dụng.';
 const TRIAL_DAYS = 30, DAY_MS = 86400000;
-const PASS_HASH = '83cf732a1bdc00a5b9a2eae1a1b573e87e80c06bf22c55a61a86ee82c387b23e';
+const PASS_HASH = 'f9c8f3a85e1aa86bdacae73ecad0fc6c13ba4102d8ed4152e6dc70c46877143f';
 const LIC_KEYS = ['tt-day-them-lic-v1', 'ttd.cfg.b'];   // lưu 2 nơi để chống xóa nhầm một khóa
+const SES_KEY = 'tt-day-them-ses-v1';
+let SESSION_OK = false;
 
 /* ---- SHA-256 thuần JS (không phụ thuộc crypto.subtle nên chạy cả khi mở file trực tiếp) ---- */
 function sha256(ascii) {
@@ -1966,9 +1972,16 @@ function licLoad() {
   const now = Date.now(), last = recs.reduce((m, r) => Math.max(m, +r.l || 0), 0), eff = Math.max(now, last);
   let first = recs.length ? Math.min(...recs.map(r => +r.f || now)) : now;
   if (first > eff) first = eff;
-  const rec = { f: first, l: eff, a: recs.some(r => r.a === ACT_TOKEN) ? ACT_TOKEN : '' };
+  const rec = { f: first, l: eff, a: recs.some(r => r.a === ACT_TOKEN) ? ACT_TOKEN : '', rem: recs.some(r => r.rem === ACT_TOKEN) ? ACT_TOKEN : '' };
   if (recs.length < LIC_KEYS.length || eff - last > 60000) licSave(rec);
   return rec;
+}
+function isAuthed() {
+  if (SESSION_OK) return true;
+  try { if (sessionStorage.getItem(SES_KEY) === ACT_TOKEN) { SESSION_OK = true; return true; } } catch (e) { /* bỏ qua */ }
+  const r = licLoad();
+  if (r.rem === ACT_TOKEN) { SESSION_OK = true; return true; }
+  return false;
 }
 function licStatus() {
   const r = licLoad();
@@ -1977,17 +1990,22 @@ function licStatus() {
   return { state: left > 0 ? 'trial' : 'expired', left: Math.max(0, left), end: new Date(r.f + TRIAL_DAYS * DAY_MS) };
 }
 /* Trả về 'ok' | 'bad' | 'empty' */
-function licTry(pw) {
+function licTry(pw, rem) {
   if (!String(pw || '').trim()) return 'empty';
   if (hashPw(pw) !== PASS_HASH) return 'bad';
-  const r = licLoad(); r.a = ACT_TOKEN; licSave(r); return 'ok';
+  SESSION_OK = true;
+  try { sessionStorage.setItem(SES_KEY, ACT_TOKEN); } catch (e) { /* bỏ qua */ }
+  const r = licLoad(); r.a = ACT_TOKEN;
+  if (rem !== undefined) r.rem = rem ? ACT_TOKEN : '';
+  licSave(r);
+  return 'ok';
 }
 const licMsgHTML = r => r === 'empty' ? 'Vui lòng nhập mật khẩu.' : r === 'bad' ? `Mật khẩu chưa đúng.<br>${CONTACT_HTML}` : '';
 const fmtDate = d => String(d.getDate()).padStart(2, '0') + '/' + String(d.getMonth() + 1).padStart(2, '0') + '/' + d.getFullYear();
 
-/* ---- Khóa màn hình khi hết hạn ---- */
+/* ---- Khóa màn hình khi chưa đăng nhập hoặc hết hạn ---- */
 function enforceLicense() {
-  const locked = licStatus().state === 'expired', was = document.body.classList.contains('locked');
+  const locked = !isAuthed() || licStatus().state === 'expired', was = document.body.classList.contains('locked');
   document.body.classList.toggle('locked', locked);
   if (locked && !was) { const i = $('#lockPw'); if (i) setTimeout(() => i.focus(), 60); }
   return locked;
@@ -1995,14 +2013,25 @@ function enforceLicense() {
 function wireLicense() {
   $('#lockForm').addEventListener('submit', e => {
     e.preventDefault();
-    const inp = $('#lockPw'), msg = $('#lockMsg'), r = licTry(inp.value);
-    if (r === 'ok') { inp.value = ''; msg.hidden = true; document.body.classList.remove('locked'); render(); toast('Đã kích hoạt, cảm ơn bạn đã sử dụng!'); return; }
+    const inp = $('#lockPw'), msg = $('#lockMsg'), rem = $('#lockRem') && $('#lockRem').checked, r = licTry(inp.value, rem);
+    if (r === 'ok') { inp.value = ''; msg.hidden = true; document.body.classList.remove('locked'); render(); toast('Đăng nhập thành công!'); return; }
     msg.hidden = false; msg.innerHTML = licMsgHTML(r); inp.select();
   });
   $('#lockShow').addEventListener('change', e => { $('#lockPw').type = e.target.checked ? 'text' : 'password'; });
   setInterval(() => { if (!document.body.classList.contains('locked')) enforceLicense(); }, 60000);
   document.addEventListener('visibilitychange', () => { if (!document.hidden) enforceLicense(); });
+  const i = $('#lockPw'); if (i && document.body.classList.contains('locked')) setTimeout(() => i.focus(), 60);
 }
+ACT.logout = () => {
+  SESSION_OK = false;
+  try { sessionStorage.removeItem(SES_KEY); } catch (e) { /* bỏ qua */ }
+  const r = licLoad(); r.rem = ''; licSave(r);
+  enforceLicense();
+  const i = $('#lockPw'), m = $('#lockMsg');
+  if (m) m.hidden = true;
+  if (i) { i.value = ''; setTimeout(() => i.focus(), 60); }
+  toast('Đã khóa màn hình đăng nhập');
+};
 
 /* ---- Thành phần hiển thị ---- */
 const copyrightHTML = () => `<footer class="copyright no-print">${esc(COPYRIGHT)}</footer>`;
@@ -2018,11 +2047,11 @@ function licBannerHTML(view) {
 function licCardHTML() {
   const st = licStatus();
   const head = st.state === 'active'
-    ? '<p class="note info" style="margin-top:12px">Đã kích hoạt. Bạn được sử dụng không giới hạn thời gian.</p>'
+    ? `<p class="note info" style="margin-top:12px">Đã đăng nhập và kích hoạt bản quyền. Bạn được sử dụng không giới hạn thời gian.</p><div class="row" style="margin-top:12px"><button class="btn ghost" data-act="logout">${ic('lock')}Khóa màn hình / Đăng xuất</button></div>`
     : `<p class="note ${st.left <= 7 ? '' : 'info'}" style="margin-top:12px">Đang dùng thử: còn <b>${st.left} ngày</b> (hết hạn ngày ${fmtDate(st.end)}).</p>
-    <div class="row" style="margin-top:12px"><label class="f grow" style="max-width:320px">Mật khẩu kích hoạt<input class="inp" id="licPwSet" type="password" autocomplete="off" placeholder="Nhập mật khẩu"></label><button class="btn pri" data-act="licActivateSet" style="align-self:flex-end">Kích hoạt</button></div>
+    <div class="row" style="margin-top:12px"><label class="f grow" style="max-width:320px">Mật khẩu kích hoạt<input class="inp" id="licPwSet" type="password" autocomplete="off" placeholder="Nhập mật khẩu"></label><button class="btn pri" data-act="licActivateSet" style="align-self:flex-end">Kích hoạt</button><button class="btn ghost" data-act="logout" style="align-self:flex-end">${ic('lock')}Khóa màn hình</button></div>
     <p id="licMsgSet" class="lock-msg" role="alert" hidden></p>`;
-  return `<div class="card"><h3>Bản quyền</h3><p class="sub">${esc(COPYRIGHT)}</p>${head}</div>`;
+  return `<div class="card"><h3>Bản quyền & bảo mật đăng nhập</h3><p class="sub">${esc(COPYRIGHT)}</p>${head}</div>`;
 }
 ACT.licOpen = () => modal({
   title: 'Kích hoạt bản quyền',
